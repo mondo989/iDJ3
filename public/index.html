@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iDJ Music Player</title>
+    <link rel="stylesheet" href="styles.css">
+  
+    <script type="module">
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+      import { getDatabase, ref, query, limitToLast, onValue } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+  
+      fetch('/firebase-config')
+          .then(response => response.json())
+          .then(config => {
+              const app = initializeApp(config);
+              const database = getDatabase(app);
+              const lastSongQuery = query(ref(database, 'songs'), limitToLast(1));
+  
+              onValue(lastSongQuery, snapshot => {
+                  if (snapshot.exists()) {
+                      const data = snapshot.val();
+                      const [lastKey] = Object.keys(data);
+                      const lastSong = data[lastKey];
+                      updateCurrentSongDisplay(lastSong);
+                      console.log('Song data fetched:', lastSong);
+                  } else {
+                      console.log('No data available');
+                  }
+              });
+          })
+          .catch(error => console.error('Error loading Firebase config:', error));
+  
+      function updateCurrentSongDisplay(song) {
+          document.getElementById('currentSong').textContent = `${song.title} - ${song.artist}`;
+          document.getElementById('requestedBy').textContent = `Requested By ${song.requester}`;
+      }
+  </script>
+  
+</head>
+<body>
+    <div id="musicPlayer">
+        <h2 id="currentSong">[Song Title] - [Artist]</h2>
+        <p id="requestedBy">Requested By [Requester Name]</p>
+        <button id="skipSong">Skip Song</button>
+    </div>
+</body>
+</html>

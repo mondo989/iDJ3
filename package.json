@@ -1,0 +1,17 @@
+{
+  "name": "idj",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Intergalactic DJ - Music Request and Playback System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "latest",
+    "firebase": "latest",
+    "dotenv": "latest",
+    "node-fetch": "latest"
+  },
+  "license": "ISC"
+}
