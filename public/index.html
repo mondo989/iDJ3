@@ -5,13 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iDJ Music Player</title>
     <link rel="stylesheet" href="styles.css">
-    
+
     <script src="https://www.youtube.com/iframe_api"></script>
     <script type="module">
+        import { djIntros, enjoyTexts } from './config.js';
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
         import { getDatabase, ref, query, orderByKey, startAfter, limitToFirst, onValue } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
 
         let app, database, currentSongKey;
+        let player;
 
         fetch('/firebase-config')
             .then(response => response.json())
@@ -31,8 +33,11 @@
                     currentSongKey = firstKey;
                     const firstSong = data[firstKey];
                     updateCurrentSongDisplay(firstSong);
-                    loadYouTubeVideo(firstSong.url);
-                    console.log('Song data fetched:', firstSong);
+
+                    const djIntro = djIntros[Math.floor(Math.random() * djIntros.length)];
+                    const introText = `${djIntro}Here is the next song for you. Enjoy!`;
+
+                    generateTTSAndPlayVideo(introText, firstSong.url);
                 } else {
                     console.log('No data available');
                 }
@@ -57,15 +62,16 @@
             newPlayerDiv.id = 'yt-player';
             playerDiv.appendChild(newPlayerDiv);
 
-            new YT.Player('yt-player', {
+            player = new YT.Player('yt-player', {
                 height: '390',
                 width: '640',
                 videoId: videoId,
                 playerVars: {
-                    'autoplay': 1,
-                    'mute': 1
+                    'autoplay': 0,  // Do not autoplay the video
+                    'mute': 0       // Unmute the video
                 },
                 events: {
+                    'onReady': onPlayerReady,
                     'onStateChange': onPlayerStateChange
                 }
             });
@@ -76,9 +82,12 @@
             return urlParams.get('v');
         }
 
+        function onPlayerReady(event) {
+            // No auto-play to ensure TTS plays first
+        }
+
         function onPlayerStateChange(event) {
             if (event.data == YT.PlayerState.ENDED) {
-                alert('Video has ended.');
                 skipToNextSong();
             }
         }
@@ -94,12 +103,52 @@
                     currentSongKey = nextKey;
                     const nextSong = data[nextKey];
                     updateCurrentSongDisplay(nextSong);
-                    loadYouTubeVideo(nextSong.url);
-                    console.log('Next song data fetched:', nextSong);
+
+                    const djIntro = djIntros[Math.floor(Math.random() * djIntros.length)];
+                    const enjoyText = enjoyTexts[Math.floor(Math.random() * enjoyTexts.length)];
+                    const introText = `${djIntro} This is ${nextSong.title}, by ${nextSong.artist}. Requested by ${nextSong.requester}, ${enjoyText}`;
+
+                    destroyIframe();
+                    loadYouTubeVideo(nextSong.url); // Load the next iframe first
+                    generateTTSAndPlayVideo(introText);
                 } else {
                     alert('No more songs in the queue.');
                 }
             });
+        }
+
+        function destroyIframe() {
+            const playerDiv = document.getElementById('player');
+            playerDiv.innerHTML = ''; // Clear the existing player div
+        }
+
+        function generateTTSAndPlayVideo(introText) {
+            fetch('/generate-speech', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ text: introText })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const timestamp = new Date().getTime(); // Generate a timestamp to bust cache
+                const audio = new Audio(`${data.filePath}?t=${timestamp}`); // Append timestamp to file path
+                audio.play().then(() => {
+                    audio.onended = () => {
+                        if (player && player.playVideo) {
+                            player.playVideo();
+                        }
+                    };
+                }).catch(error => {
+                    console.error('Error playing audio:', error);
+                    // Fallback to play video if audio fails
+                    if (player && player.playVideo) {
+                        player.playVideo();
+                    }
+                });
+            })
+            .catch(error => console.error('Error generating TTS:', error));
         }
     </script>
 </head>

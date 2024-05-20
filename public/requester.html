@@ -3,16 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Request Song</title>
+    <title>iDJ Song Requester</title>
     <link rel="stylesheet" href="styles.css">
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+        import { getDatabase, ref, push } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+
+        fetch('/firebase-config')
+            .then(response => response.json())
+            .then(config => {
+                const app = initializeApp(config);
+                const database = getDatabase(app);
+
+                document.getElementById('requestSongForm').addEventListener('submit', async (event) => {
+                    event.preventDefault();
+                    const url = document.getElementById('url').value;
+                    const requester = document.getElementById('requester').value;
+
+                    if (url && requester) {
+                        try {
+                            const videoInfo = await getYouTubeVideoInfo(url);
+                            const newSongRef = ref(database, 'songs');
+                            await push(newSongRef, {
+                                title: videoInfo.title,
+                                artist: videoInfo.author_name,
+                                requester: requester,
+                                url: url,
+                                timestamp: new Date().toISOString()
+                            });
+                            alert('Song requested successfully!');
+                            document.getElementById('requestSongForm').reset();
+                        } catch (error) {
+                            console.error('Error requesting song:', error);
+                            alert('Error requesting song: ' + error.message);
+                        }
+                    } else {
+                        alert('Please fill out all fields.');
+                    }
+                });
+
+                async function getYouTubeVideoInfo(url) {
+                    const apiUrl = `https://www.youtube.com/oembed?url=${url}&format=json`;
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch video info');
+                    }
+                    return response.json();
+                }
+            })
+            .catch(error => console.error('Error loading Firebase config:', error));
+    </script>
 </head>
 <body>
-    <div id="requestForm">
-        <input type="text" id="youtubeUrl" value="https://youtube.com/watch?v=ni3Z4sxuNYc" placeholder="YouTube Video URL">
-        <input type="text" value="beans" id="requesterName" placeholder="Your Name">
-        <button id="submitRequest">Request Song</button>
-        <p id="message"></p>
+    <div id="songRequester">
+        <h1>Request a Song</h1>
+        <form id="requestSongForm">
+            <label for="url">YouTube URL:</label>
+            <input type="url" id="url" name="url" required><br>
+            <label for="requester">Requester:</label>
+            <input type="text" id="requester" name="requester" required><br>
+            <button type="submit">Request Song</button>
+        </form>
     </div>
-    <script type="module" src="script.js"></script>
 </body>
 </html>
