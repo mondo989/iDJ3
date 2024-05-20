@@ -1,5 +1,4 @@
 // SERVER_IDJ/public/script.js
-// document.getElementById('#skipSong').addEventListener('click', getNextSong);
 
 function updateCurrentSongDisplay(song) {
     document.getElementById('currentSong').textContent = `${song.title} - ${song.artist}`;

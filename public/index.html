@@ -1,45 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>iDJ Music Player</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iDJ Music Player</title>
+    <link rel="stylesheet" href="styles.css">
+    
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+        import { getDatabase, ref, query, orderByKey, startAfter, limitToFirst, onValue } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
 
-  <script src="https://www.youtube.com/iframe_api"></script>
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
-        import { getDatabase, ref, query, limitToLast, onValue } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+        let app, database, currentSongKey;
 
         fetch('/firebase-config')
             .then(response => response.json())
             .then(config => {
-                const app = initializeApp(config);
-                const database = getDatabase(app);
-                const lastSongQuery = query(ref(database, 'songs'), limitToLast(1));
-
-                onValue(lastSongQuery, snapshot => {
-                    if (snapshot.exists()) {
-                        const data = snapshot.val();
-                        const [lastKey] = Object.keys(data);
-                        const lastSong = data[lastKey];
-                        updateCurrentSongDisplay(lastSong);
-                        loadYouTubeVideo(lastSong.url);
-                        console.log('Song data fetched:', lastSong);
-                    } else {
-                        console.log('No data available');
-                    }
-                });
+                app = initializeApp(config);
+                database = getDatabase(app);
+                loadInitialSong();
             })
             .catch(error => console.error('Error loading Firebase config:', error));
+
+        function loadInitialSong() {
+            const lastSongQuery = query(ref(database, 'songs'), orderByKey(), limitToFirst(1));
+            onValue(lastSongQuery, snapshot => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    const [firstKey] = Object.keys(data);
+                    currentSongKey = firstKey;
+                    const firstSong = data[firstKey];
+                    updateCurrentSongDisplay(firstSong);
+                    loadYouTubeVideo(firstSong.url);
+                    console.log('Song data fetched:', firstSong);
+                } else {
+                    console.log('No data available');
+                }
+            });
+        }
 
         function updateCurrentSongDisplay(song) {
             document.getElementById('currentSong').textContent = `${song.title} - ${song.artist}`;
             document.getElementById('requestedBy').textContent = `Requested By ${song.requester}`;
         }
-
-        let player;
 
         function onYouTubeIframeAPIReady() {
             // This function will be called automatically by the YouTube API
@@ -47,16 +50,22 @@
 
         function loadYouTubeVideo(url) {
             const videoId = extractVideoId(url);
-            player = new YT.Player('player', {
+            const playerDiv = document.getElementById('player');
+            playerDiv.innerHTML = ''; // Clear the existing player div
+
+            const newPlayerDiv = document.createElement('div');
+            newPlayerDiv.id = 'yt-player';
+            playerDiv.appendChild(newPlayerDiv);
+
+            new YT.Player('yt-player', {
                 height: '390',
                 width: '640',
                 videoId: videoId,
                 playerVars: {
-                    'autoplay': 1,  // Autoplay the video
-                    'mute': 1       // Mute the video to increase the likelihood of autoplay
+                    'autoplay': 1,
+                    'mute': 1
                 },
                 events: {
-                    'onReady': onPlayerReady,
                     'onStateChange': onPlayerStateChange
                 }
             });
@@ -67,26 +76,39 @@
             return urlParams.get('v');
         }
 
-        function onPlayerReady(event) {
-            event.target.playVideo();
-        }
-
         function onPlayerStateChange(event) {
             if (event.data == YT.PlayerState.ENDED) {
                 alert('Video has ended.');
-                // Additional callback functionality can be added here
+                skipToNextSong();
             }
+        }
+
+        document.getElementById('skipSong').addEventListener('click', skipToNextSong);
+
+        function skipToNextSong() {
+            const nextSongQuery = query(ref(database, 'songs'), orderByKey(), startAfter(currentSongKey), limitToFirst(1));
+            onValue(nextSongQuery, snapshot => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    const [nextKey] = Object.keys(data);
+                    currentSongKey = nextKey;
+                    const nextSong = data[nextKey];
+                    updateCurrentSongDisplay(nextSong);
+                    loadYouTubeVideo(nextSong.url);
+                    console.log('Next song data fetched:', nextSong);
+                } else {
+                    alert('No more songs in the queue.');
+                }
+            });
         }
     </script>
 </head>
-
 <body>
-  <div id="musicPlayer">
-    <h2 id="currentSong">[Song Title] - [Artist]</h2>
-    <p id="requestedBy">Requested By [Requester Name]</p>
-    <button id="skipSong">Skip Song</button>
-    <div id="player"></div>
-  </div>
+    <div id="musicPlayer">
+        <h2 id="currentSong">[Song Title] - [Artist]</h2>
+        <p id="requestedBy">Requested By [Requester Name]</p>
+        <button id="skipSong">Skip Song</button>
+        <div id="player"></div>
+    </div>
 </body>
-
 </html>
