@@ -56,37 +56,3 @@ function requestSong() {
       messageElement.style.color = 'red';
   });
 }
-
-
-
-
-// function requestSong() {
-//   const youtubeUrl = document.getElementById('youtubeUrl').value;
-//   const requesterName = document.getElementById('requesterName').value;
-//   const messageElement = document.getElementById('message');
-
-//   if (!youtubeUrl || !requesterName) {
-//       messageElement.textContent = 'Please fill in all fields.';
-//       messageElement.style.color = 'red';
-//       return;
-//   }
-
-//   fetch('/add-song', {
-//       method: 'POST',
-//       headers: {
-//           'Content-Type': 'application/json'
-//       },
-//       body: JSON.stringify({ youtubeUrl, requester: requesterName })
-//   })
-//   .then(response => response.json())
-//   .then(data => {
-//       if (data.message) {
-//           messageElement.textContent = data.message;
-//           messageElement.style.color = 'green';
-//       }
-//   })
-//   .catch(error => {
-//       messageElement.textContent = 'Error requesting song: ' + error.message;
-//       messageElement.style.color = 'red';
-//   });
-// }

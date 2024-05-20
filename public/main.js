@@ -1,22 +1,36 @@
-import { djIntros, enjoyTexts } from './config.js';
+import { djIntros, enjoyTexts, applicationIntros } from './config.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
 import { getDatabase, ref, query, orderByKey, startAfter, limitToFirst, onValue } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
 
 let app, database, currentSongKey;
 let player;
-let isFirstPlay = true;
 const backgroundMusic = new Audio('audio/background-music.mp3'); // Set the correct path to your background music file
 backgroundMusic.volume = 0.2; // Initial volume at 20%
 backgroundMusic.loop = true;
+
+document.getElementById('startApp').addEventListener('click', () => {
+    document.getElementById('startApp').style.display = 'none';
+    document.getElementById('songInfo').style.display = 'block';
+    document.getElementById('skipSong').disabled = false;
+    playApplicationIntro();
+});
 
 fetch('/firebase-config')
     .then(response => response.json())
     .then(config => {
         app = initializeApp(config);
         database = getDatabase(app);
-        loadInitialSong();
     })
     .catch(error => console.error('Error loading Firebase config:', error));
+
+function playApplicationIntro() {
+    const applicationIntro = applicationIntros[Math.floor(Math.random() * applicationIntros.length)];
+    backgroundMusic.play();
+    generateTTS(applicationIntro).then(() => {
+        fadeOutBackgroundMusic();
+        loadInitialSong();
+    });
+}
 
 function loadInitialSong() {
     const lastSongQuery = query(ref(database, 'songs'), orderByKey(), limitToFirst(1));
@@ -27,33 +41,11 @@ function loadInitialSong() {
             currentSongKey = firstKey;
             const firstSong = data[firstKey];
             updateCurrentSongDisplay(firstSong);
-
-            const djIntro = djIntros[Math.floor(Math.random() * djIntros.length)];
-            const introText = `${djIntro} Here is the next song for you. Enjoy!`;
-
-            if (isFirstPlay) {
-                playRadioStationIntroduction(introText, firstSong.url);
-                isFirstPlay = false;
-            } else {
-                generateTTSAndPlayVideo(introText, firstSong.url);
-            }
+            loadYouTubeVideo(firstSong.url);
         } else {
             console.log('No data available');
         }
     });
-}
-
-function playRadioStationIntroduction(introText, youtubeURL) {
-    const djIntro = djIntros[Math.floor(Math.random() * djIntros.length)];
-    const enjoyText = enjoyTexts[Math.floor(Math.random() * enjoyTexts.length)];
-    const introductionText = `${djIntro} Welcome to the iDJ radio station. ${enjoyText}`;
-
-    generateTTS(introductionText)
-        .then(() => {
-            fadeInBackgroundMusic(() => {
-                generateTTSAndPlayVideo(introText, youtubeURL);
-            });
-        });
 }
 
 function fadeInBackgroundMusic(callback) {
@@ -169,7 +161,7 @@ function destroyIframe() {
     playerDiv.innerHTML = ''; // Clear the existing player div
 }
 
-function generateTTSAndPlayVideo(introText, youtubeURL) {
+function generateTTSAndPlayVideo(introText) {
     fetch('/generate-speech', {
         method: 'POST',
         headers: {

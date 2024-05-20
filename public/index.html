@@ -10,9 +10,12 @@
 </head>
 <body>
     <div id="musicPlayer">
-        <h2 id="currentSong">[Song Title] - [Artist]</h2>
-        <p id="requestedBy">Requested By [Requester Name]</p>
-        <button id="skipSong">Skip Song</button>
+        <button id="startApp">Start iDJ</button>
+        <div id="songInfo" style="display: none;">
+            <h2 id="currentSong">[Song Title] - [Artist]</h2>
+            <p id="requestedBy">Requested By [Requester Name]</p>
+            <button id="skipSong" disabled>Skip Song</button>
+        </div>
         <div id="player"></div>
     </div>
 </body>
