@@ -1,3 +1,4 @@
+// config.js
 export const djIntros = [
   "Let's get this party started! ",
   "You're going to love this one! ",
@@ -11,5 +12,13 @@ export const enjoyTexts = [
 ];
 
 export const applicationIntros = [
-  "Hello World, you're rocking to the Tunes of DJ Intergalactic Bunz your friendly DJ! We have quite a show for you today."
+  "Hello World, DJ Intergalactic Beans. Let's Rock!",
+  "DJ Intergalactic Bean. Let's Rock!",
+  "Let's Rock!"
+];
+
+export const skipSongTexts = [
+  "Skipping to the next one!",
+  "Hold tight, next song coming up!",
+  "Ready for another hit? Let’s skip!"
 ];
