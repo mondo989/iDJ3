@@ -1,6 +1,21 @@
-import { djIntros, enjoyTexts, applicationIntros, skipSongTexts } from './config.js';
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
-import { getDatabase, ref, query, orderByKey, startAfter, limitToFirst, onValue } from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
+import {
+    djIntros,
+    enjoyTexts,
+    applicationIntros,
+    skipSongTexts
+} from './config.js';
+import {
+    initializeApp
+} from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js';
+import {
+    getDatabase,
+    ref,
+    query,
+    orderByKey,
+    startAfter,
+    limitToFirst,
+    onValue
+} from 'https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js';
 
 let app, database, currentSongKey;
 let player;
@@ -28,7 +43,7 @@ document.getElementById('startApp').addEventListener('click', () => {
         generateTTSAndPlay(applicationIntro).catch(error => {
             console.error('Error playing initial TTS:', error);
         });
-    }, 5000);  // Delay of 5000 milliseconds (5 seconds)
+    }, 5000); // Delay of 5000 milliseconds (5 seconds)
 });
 
 fetch('/firebase-config')
@@ -180,8 +195,8 @@ function loadYouTubeVideo(url, autoplay = false) {
         width: '640',
         videoId: videoId,
         playerVars: {
-            'autoplay': autoplay ? 1 : 0,  // Autoplay based on the parameter
-            'mute': 0       // Unmute the video
+            'autoplay': autoplay ? 1 : 0, // Autoplay based on the parameter
+            'mute': 0 // Unmute the video
         },
         events: {
             'onReady': onPlayerReady,
@@ -223,57 +238,61 @@ function destroyIframe() {
 function generateTTSAndPlay(introText) {
     return new Promise((resolve, reject) => {
         fetch('http://localhost:59126/api/tts', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ text: introText })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.blob(); // Assuming the response is a binary blob (audio file)
-        })
-        .then(blob => {
-            const url = window.URL.createObjectURL(blob); // Create a URL for the blob object
-            const audio = new Audio(url);
-            audio.play().then(() => {
-                window.URL.revokeObjectURL(url); // Clean up the object URL after playing
-                audio.onended = () => {
-                    resolve();
-                    if (player && typeof player.playVideo === 'function') {
-                        player.playVideo(); // Ensure the YouTube video plays after TTS
-                    }
-                };
-            }).catch(error => {
-                console.error('Error playing audio:', error);
-                reject(error);
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    text: introText
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.blob(); // Assuming the response is a binary blob (audio file)
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob); // Create a URL for the blob object
+                const audio = new Audio(url);
+                audio.play().then(() => {
+                    window.URL.revokeObjectURL(url); // Clean up the object URL after playing
+                    audio.onended = () => {
+                        resolve();
+                        if (player && typeof player.playVideo === 'function') {
+                            player.playVideo(); // Ensure the YouTube video plays after TTS
+                        }
+                    };
+                }).catch(error => {
+                    console.error('Error playing audio:', error);
+                    reject(error);
+                });
+            })
+            .catch(error => {
+                console.error('Error generating TTS:', error);
+                reject(error); // Rethrow after logging
             });
-        })
-        .catch(error => {
-            console.error('Error generating TTS:', error);
-            reject(error); // Rethrow after logging
-        });
     });
 }
 
 function generateTTS(text) {
     return fetch('/generate-speech', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ text: text })
-    })
-    .then(response => response.json())
-    .then(data => {
-        const timestamp = new Date().getTime(); // Generate a timestamp to bust cache
-        const audio = new Audio(`${data.filePath}?t=${timestamp}`); // Append timestamp to file path
-        return audio.play();
-    })
-    .catch(error => {
-        console.error('Error generating TTS:', error);
-        throw error;
-    });
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                text: text
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            const timestamp = new Date().getTime(); // Generate a timestamp to bust cache
+            const audio = new Audio(`${data.filePath}?t=${timestamp}`); // Append timestamp to file path
+            return audio.play();
+        })
+        .catch(error => {
+            console.error('Error generating TTS:', error);
+            throw error;
+        });
 }
